@@ -7,7 +7,6 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from utls import compile_latex
 import shutil
-from monitoring import metrics_middleware, metrics_endpoint
 
 app = FastAPI(title="LaTeX Compilation Service")
 
@@ -22,15 +21,6 @@ app.add_middleware(
 
 # Thread pool for parallel LaTeX compilation
 executor = ThreadPoolExecutor(max_workers=4)  # Adjust based on your server capacity
-
-# Add metrics middleware
-@app.middleware("http")
-async def add_metrics_middleware(request: Request, call_next):
-    return await metrics_middleware(request, call_next)
-
-@app.get("/metrics")
-async def get_metrics():
-    return await metrics_endpoint()
 
 @app.get("/")
 async def root():
