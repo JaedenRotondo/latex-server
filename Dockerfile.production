@@ -40,6 +40,12 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 COPY main.py .
 COPY utls.py .
 COPY monitoring.py .
+COPY start.sh .
+
+# Make start script executable and verify files
+RUN chmod +x start.sh && \
+    ls -la *.py && \
+    echo "Files copied successfully"
 
 # Create necessary directories
 RUN mkdir -p /tmp/jobs /tmp/tectonic-cache
@@ -51,5 +57,5 @@ ENV TECTONIC_CACHE_DIR=/tmp/tectonic-cache
 # Expose port
 EXPOSE 8000
 
-# Use gunicorn for production with multiple workers
-CMD ["gunicorn", "main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--access-logfile", "-", "--error-logfile", "-"]
+# Use the start script
+CMD ["./start.sh"]
