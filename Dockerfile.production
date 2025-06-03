@@ -1,0 +1,54 @@
+# Multi-stage build for smaller production image
+FROM python:3.11-slim as builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    xz-utils \
+    ca-certificates
+
+# Download and extract Tectonic
+RUN curl -L -o tectonic.tar.gz https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%400.15.0/tectonic-0.15.0-x86_64-unknown-linux-gnu.tar.gz && \
+    tar -xzf tectonic.tar.gz && \
+    chmod +x tectonic
+
+# Production stage
+FROM python:3.11-slim
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgraphite2-3 \
+    libharfbuzz0b \
+    libicu72 \
+    libssl3 \
+    libfontconfig1 \
+    libfreetype6 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy Tectonic from builder
+COPY --from=builder /tectonic /usr/local/bin/tectonic
+
+# Set working directory
+WORKDIR /code
+
+# Copy and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir gunicorn
+
+# Copy application code
+COPY main.py .
+COPY utls.py .
+
+# Create necessary directories
+RUN mkdir -p /tmp/jobs /tmp/tectonic-cache
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV TECTONIC_CACHE_DIR=/tmp/tectonic-cache
+
+# Expose port
+EXPOSE 8000
+
+# Use gunicorn for production with multiple workers
+CMD ["gunicorn", "main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--access-logfile", "-", "--error-logfile", "-"]
