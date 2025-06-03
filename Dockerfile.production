@@ -39,6 +39,7 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 # Copy application code
 COPY main.py .
 COPY utls.py .
+COPY monitoring.py .
 
 # Create necessary directories
 RUN mkdir -p /tmp/jobs /tmp/tectonic-cache
