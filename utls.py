@@ -10,6 +10,7 @@ def compile_latex(tex_path: str) -> Tuple[Optional[str], Optional[str]]:
     cmd = [
         "tectonic",
         "--print",  # Get detailed error output
+        "-Z", "continue-on-errors",  # Keep compiling even when recoverable errors occur
         "--outdir", output_dir,
         tex_path
     ]
