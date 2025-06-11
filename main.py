@@ -49,12 +49,12 @@ async def compile_latex_endpoint(file: UploadFile = File(...)):
     
     # Run compilation in thread pool for parallelism
     loop = asyncio.get_event_loop()
-    pdf_path, error_msg = await loop.run_in_executor(executor, compile_latex, tex_path)
+    pdf_path, warnings = await loop.run_in_executor(executor, compile_latex, tex_path)
     
     if not pdf_path:
         # Clean up on failure
         shutil.rmtree(job_dir, ignore_errors=True)
-        raise HTTPException(status_code=500, detail=f"LaTeX compilation failed: {error_msg}")
+        raise HTTPException(status_code=500, detail=f"LaTeX compilation failed: {warnings}")
     
     # Schedule cleanup after response
     async def cleanup():
@@ -63,8 +63,14 @@ async def compile_latex_endpoint(file: UploadFile = File(...)):
     
     asyncio.create_task(cleanup())
     
-    return FileResponse(
+    # Add warnings as custom header if they exist
+    response = FileResponse(
         pdf_path, 
         media_type="application/pdf", 
         filename=f"{os.path.splitext(file.filename)[0]}.pdf"
     )
+    
+    if warnings:
+        response.headers["X-LaTeX-Warnings"] = warnings
+    
+    return response
